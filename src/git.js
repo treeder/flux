@@ -49,6 +49,19 @@ export function createBranch(branchName) {
 
 export function checkoutBaseAndCreateBranch(branchName) {
   const baseBranch = getBaseBranch();
+  
+  // Auto-commit any pending workspace changes so they don't block branch switching or bleed
+  try {
+    const statusOut = run('git status --short');
+    if (statusOut) {
+      console.log('Auto-committing pending workspace changes...');
+      run('git add .');
+      run('git commit -m "flux: auto-commit pending changes before shadow creation"');
+    }
+  } catch (e) {
+    console.error('Failed to auto-commit pending changes:', e);
+  }
+
   try {
     run(`git checkout ${baseBranch}`);
   } catch (e) {
