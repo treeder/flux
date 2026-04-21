@@ -9,13 +9,13 @@ dotenv.config();
 const program = new Command();
 
 program
-  .name('hit')
+  .name('flux')
   .description('AI-Native Agentic Version Control System MVP')
   .version('1.0.0');
 
 program
   .command('init')
-  .description('Initialize a new hit repository')
+  .description('Initialize a new flux repository')
   .action(initCommand);
 
 const shadow = program.command('shadow').description('Manage shadow workspaces for agentic intents');

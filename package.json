@@ -1,5 +1,5 @@
 {
-  "name": "hit",
+  "name": "flux",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,7 +11,7 @@
   "license": "ISC",
   "type": "module",
   "bin": {
-    "hit": "./index.js"
+    "flux": "./index.js"
   },
   "dependencies": {
     "@google/genai": "^1.50.1",

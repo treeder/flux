@@ -4,15 +4,15 @@ import { isGitInitialized, initGit, createBranch, getDiff, status } from './git.
 import { generateSemanticReview } from './ai.js';
 
 export function initCommand() {
-  console.log('Initializing hit Agentic VCS...');
-  const hitDir = path.join(process.cwd(), '.hit');
-  if (!fs.existsSync(hitDir)) {
-    fs.mkdirSync(hitDir);
+  console.log('Initializing flux Agentic VCS...');
+  const fluxDir = path.join(process.cwd(), '.flux');
+  if (!fs.existsSync(fluxDir)) {
+    fs.mkdirSync(fluxDir);
     const config = { version: "1.0.0", shadows: [] };
-    fs.writeFileSync(path.join(hitDir, 'config.json'), JSON.stringify(config, null, 2));
-    console.log('Created .hit configuration directory.');
+    fs.writeFileSync(path.join(fluxDir, 'config.json'), JSON.stringify(config, null, 2));
+    console.log('Created .flux configuration directory.');
   } else {
-    console.log('.hit directory already exists.');
+    console.log('.flux directory already exists.');
   }
 
   if (!isGitInitialized()) {
@@ -28,7 +28,7 @@ export function initCommand() {
 
 export function shadowStartCommand(intent) {
   if (!isGitInitialized()) {
-    console.error('Git is not initialized. Run "hit init" first.');
+    console.error('Git is not initialized. Run "flux init" first.');
     process.exit(1);
   }
   
@@ -49,7 +49,7 @@ export function shadowStartCommand(intent) {
 
 export async function reviewCommand() {
   if (!isGitInitialized()) {
-    console.error('Git is not initialized. Run "hit init" first.');
+    console.error('Git is not initialized. Run "flux init" first.');
     process.exit(1);
   }
 

@@ -19,9 +19,9 @@ export function isGitInitialized() {
 export function initGit() {
   run('git init')
   // Initial commit to avoid issues with branch creation
-  fs.writeFileSync('.gitignore', 'node_modules/\n.env\n.hit/\n')
+  fs.writeFileSync('.gitignore', 'node_modules/\n.env\n.flux/\n')
   run('git add .gitignore')
-  run('git commit -m "hit: Initial commit"')
+  run('git commit -m "flux: Initial commit"')
 }
 
 export function createBranch(branchName) {
@@ -34,13 +34,13 @@ export function getDiff() {
     run('git add -N .')
   } catch (e) {}
 
-  // Get staged and unstaged changes, explicitly excluding .hit directory
+  // Get staged and unstaged changes, explicitly excluding .flux directory
   // We prefer unstaged or all changes against HEAD
   try {
-    return run('git diff HEAD -- ":(exclude).hit"')
+    return run('git diff HEAD -- ":(exclude).flux"')
   } catch (e) {
     // maybe no HEAD yet, just git diff
-    return run('git diff -- ":(exclude).hit"')
+    return run('git diff -- ":(exclude).flux"')
   }
 }
 
