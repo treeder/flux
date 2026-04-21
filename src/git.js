@@ -17,15 +17,54 @@ export function isGitInitialized() {
 }
 
 export function initGit() {
-  run('git init')
+  run('git init -b main')
   // Initial commit to avoid issues with branch creation
   fs.writeFileSync('.gitignore', 'node_modules/\n.env\n.flux/\n')
   run('git add .gitignore')
   run('git commit -m "flux: Initial commit"')
 }
 
+export function getBaseBranch() {
+  try {
+    // Try to get default branch from origin
+    const remoteHead = run('git rev-parse --abbrev-ref origin/HEAD');
+    if (remoteHead) {
+      return remoteHead.split('/')[1];
+    }
+  } catch (e) {}
+  
+  // Fallback to checking if main or master exist
+  try {
+    const branches = run('git branch --format="%(refname:short)"').split('\n');
+    if (branches.includes('main')) return 'main';
+    if (branches.includes('master')) return 'master';
+  } catch(e) {}
+  
+  return 'main';
+}
+
 export function createBranch(branchName) {
   run(`git checkout -b ${branchName}`)
+}
+
+export function checkoutBaseAndCreateBranch(branchName) {
+  const baseBranch = getBaseBranch();
+  try {
+    run(`git checkout ${baseBranch}`);
+  } catch (e) {
+    console.log(`Could not checkout base branch ${baseBranch}, branching from current spot.`);
+  }
+  run(`git checkout -b ${branchName}`);
+}
+
+export function commitAll(message) {
+  try {
+    run('git add .');
+    // Escape double quotes for the commit message
+    run(`git commit -m "${message.replace(/"/g, '\\"')}"`);
+  } catch(e) {
+    console.error('Failed to commit changes:', e.message);
+  }
 }
 
 export function getDiff() {
