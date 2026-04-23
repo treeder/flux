@@ -24,10 +24,10 @@ export function initGit() {
   run('git commit -m "flux: Initial commit"')
 }
 
-export function getBaseBranch() {
+export function getBaseBranch(cwd = process.cwd()) {
   try {
     // Try to get default branch from origin
-    const remoteHead = run('git rev-parse --abbrev-ref origin/HEAD')
+    const remoteHead = run('git rev-parse --abbrev-ref origin/HEAD', cwd)
     if (remoteHead) {
       return remoteHead.split('/')[1]
     }
@@ -35,7 +35,7 @@ export function getBaseBranch() {
 
   // Fallback to checking if main or master exist
   try {
-    const branches = run('git branch --format="%(refname:short)"').split('\n')
+    const branches = run('git branch --format="%(refname:short)"', cwd).split('\n')
     if (branches.includes('main')) return 'main'
     if (branches.includes('master')) return 'master'
   } catch (e) {}
@@ -87,24 +87,30 @@ export function commitAll(message, cwd = process.cwd()) {
   }
 }
 
-export function getDiff() {
+export function getDiff(cwd = process.cwd()) {
   // Stage intent-to-add for untracked files so the AI can review new files
   try {
-    run('git add -N .')
+    run('git add -N .', cwd)
   } catch (e) {}
 
-  // Get staged and unstaged changes, explicitly excluding .flux directory
-  // We prefer unstaged or all changes against HEAD
+  const baseBranch = getBaseBranch(cwd)
+  console.log(`Using base branch: ${baseBranch}`)
+
+  // Compare against base branch to show all changes made in this branch/worktree
   try {
-    return run('git diff HEAD -- ":(exclude).flux"')
+    return run(`git diff ${baseBranch} -- ":(exclude).flux"`, cwd)
   } catch (e) {
-    // maybe no HEAD yet, just git diff
-    return run('git diff -- ":(exclude).flux"')
+    // Fallback to diffing against HEAD or working tree
+    try {
+      return run('git diff HEAD -- ":(exclude).flux"', cwd)
+    } catch (e2) {
+      return run('git diff -- ":(exclude).flux"', cwd)
+    }
   }
 }
 
-export function status() {
-  return run('git status --short')
+export function status(cwd = process.cwd()) {
+  return run('git status --short', cwd)
 }
 
 export function createPullRequest(branchName, title, cwd = process.cwd()) {

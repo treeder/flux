@@ -30,6 +30,7 @@ program
 program
   .command('review')
   .description('Generate Semantic Intent Review and Confidence Score via AI for the current changes')
-  .action(reviewCommand)
+  .option('--id <id>', 'Unique ID of existing shadow workspace to review')
+  .action((options) => reviewCommand({ ...program.opts(), ...options }))
 
 program.parse(process.argv)

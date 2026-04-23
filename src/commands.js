@@ -58,10 +58,11 @@ export async function shadowStartCommand(intent, options = {}) {
 
   ensureGitignore()
 
-  let shadowDirName;
-  let shadowBranchName;
-  let shadowPath;
-  let isNew = true;
+  let shadowDirName
+  let shadowBranchName
+  let shadowPath
+  let isNew = true
+  const uniqueId = options.id || crypto.randomBytes(3).toString('hex')
 
   if (options.id) {
     const worktreesDir = path.join(process.cwd(), 'worktrees')
@@ -73,13 +74,12 @@ export async function shadowStartCommand(intent, options = {}) {
       console.error(`Could not find existing worktree for id: ${options.id}`)
       return
     }
-    shadowBranchName = `shadow/${shadowDirName}`
+    shadowBranchName = `flux/${shadowDirName}`
     shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
-    isNew = false;
+    isNew = false
     console.log(`Resuming existing shadow workspace: ${shadowDirName}`)
   } else {
     // Format intent string into a safe branch/shadow name
-    const uniqueId = crypto.randomBytes(3).toString('hex')
     const safeIntentName = intent
       .trim()
       .replace(/[^a-zA-Z0-9-]/g, '-')
@@ -87,7 +87,7 @@ export async function shadowStartCommand(intent, options = {}) {
       .substring(0, 30)
       .replace(/-+$/, '')
     shadowDirName = `${uniqueId}-${safeIntentName}`
-    shadowBranchName = `shadow/${shadowDirName}`
+    shadowBranchName = `flux/${shadowDirName}`
     shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
 
     console.log(`Spawning shadow workspace for intent: "${intent}"`)
@@ -121,17 +121,37 @@ export async function shadowStartCommand(intent, options = {}) {
   } catch (error) {
     console.error('Failed to implement feature using Gemini CLI:', error.message)
   }
+  console.log(`\x1b[33mTo continue making changes, run: flux run --id ${uniqueId} "new changes" \x1b[0m`)
+  console.log(`\x1b[33mTo review the changes, run: flux review --id ${uniqueId}\x1b[0m`)
 }
 
-export async function reviewCommand() {
+export async function reviewCommand(options = {}) {
   if (!isGitInitialized()) {
     console.error('Git is not initialized. Run "flux init" first.')
     process.exit(1)
   }
 
-  console.log('Checking current workspace changes...')
-  const currentDiff = getDiff()
-  const currentStatus = status()
+  let reviewPath = process.cwd()
+
+  if (options.id) {
+    const worktreesDir = path.join(process.cwd(), 'worktrees')
+    let shadowDirName
+    if (fs.existsSync(worktreesDir)) {
+      const dirs = fs.readdirSync(worktreesDir)
+      shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
+    }
+    if (!shadowDirName) {
+      console.error(`Could not find existing worktree for id: ${options.id}`)
+      return
+    }
+    reviewPath = path.join(process.cwd(), 'worktrees', shadowDirName)
+    console.log(`Reviewing existing shadow workspace: ${shadowDirName}`)
+  } else {
+    console.log('Checking current workspace changes...')
+  }
+
+  const currentDiff = getDiff(reviewPath)
+  const currentStatus = status(reviewPath)
 
   if (!currentDiff && !currentStatus) {
     console.log('No changes detected in the workspace.')
