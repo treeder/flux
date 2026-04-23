@@ -185,6 +185,12 @@ export async function reviewCommand(options = {}) {
     console.log(`  Auto-Approvable: ${approvableStr}`)
 
     console.log(pc.bold(pc.magenta('\n================================')))
+    
+    if (options.id) {
+      console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold(`flux merge --id ${options.id}`)}`))
+    } else {
+      console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold('flux merge --id <ID>')}`))
+    }
   } catch (err) {
     console.error(pc.red('❌ Failed to obtain Semantic Review. Make sure GEMINI_API_KEY is set and valid.'))
   }
