@@ -37,10 +37,28 @@ Start a new shadow workspace for a specific intent. This creates an isolated sha
 flux start "add user authentication"
 ```
 
+### `flux run <intent>`
+
+Apply new changes within a shadow workspace. Use the `--id` flag to target an existing workspace and continue your agentic flow.
+
+```bash
+flux run --id <ID> "refactor the new login page"
+```
+
 ### `flux review`
 
-Generate a Semantic Intent Review and Confidence Score via AI for the current changes in your workspace.
+Generate a Semantic Intent Review and Confidence Score via AI for the current changes. You can provide an `--id` to review a specific shadow workspace.
 
 ```bash
 flux review
+# or to review a specific workspace
+flux review --id <ID>
+```
+
+### `flux merge`
+
+Merge the pull request for a specific shadow workspace back into your base branch. This will squash your changes and tidy up the remote branch.
+
+```bash
+flux merge --id <ID>
 ```

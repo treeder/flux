@@ -12,6 +12,7 @@ import {
   getDiff,
   status,
   createPullRequest,
+  mergePullRequest,
 } from './git.js'
 import { generateSemanticReview } from './ai.js'
 
@@ -117,7 +118,8 @@ export async function shadowStartCommand(intent, options = {}) {
       console.log(pc.magenta('📤 Attempting to create a Pull Request...'))
       createPullRequest(shadowBranchName, intent, shadowPath)
     } else {
-      console.log(pc.blue('🔗 Changes added to existing Pull Request/Branch.'))
+      console.log(pc.blue('🔗 Changes added to existing Pull Request/Branch. Pushing...'))
+      execSync('git push', { stdio: 'inherit', cwd: shadowPath })
     }
   } catch (error) {
     console.error(pc.red(`❌ Failed to implement feature using Gemini CLI: ${error.message}`))
@@ -186,4 +188,34 @@ export async function reviewCommand(options = {}) {
   } catch (err) {
     console.error(pc.red('❌ Failed to obtain Semantic Review. Make sure GEMINI_API_KEY is set and valid.'))
   }
+}
+
+export async function mergeCommand(options = {}) {
+  if (!isGitInitialized()) {
+    console.error(pc.red('❌ Git is not initialized. Run "flux init" first.'))
+    process.exit(1)
+  }
+
+  if (!options.id) {
+    console.error(pc.red('❌ Please provide the workspace ID using --id <id> to merge.'))
+    process.exit(1)
+  }
+
+  const worktreesDir = path.join(process.cwd(), 'worktrees')
+  let shadowDirName
+  if (fs.existsSync(worktreesDir)) {
+    const dirs = fs.readdirSync(worktreesDir)
+    shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
+  }
+  if (!shadowDirName) {
+    console.error(pc.red(`❌ Could not find existing worktree for id: ${options.id}`))
+    return
+  }
+
+  const shadowBranchName = `flux/${shadowDirName}`
+  const shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
+
+  console.log(pc.cyan(`🔀 Initiating merge for shadow workspace: ${pc.bold(shadowDirName)}`))
+
+  mergePullRequest(shadowBranchName, shadowPath)
 }

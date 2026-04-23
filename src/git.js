@@ -141,3 +141,13 @@ export function createPullRequest(branchName, title, cwd = process.cwd()) {
     )
   }
 }
+
+export function mergePullRequest(branchName, cwd = process.cwd()) {
+  try {
+    console.log(pc.magenta(`🔀 Merging Pull Request for branch ${branchName}...`))
+    run(`gh pr merge ${branchName} --squash --delete-branch`, cwd)
+    console.log(pc.green('✅ Successfully merged Pull Request!'))
+  } catch (e) {
+    console.error(pc.red('❌ Failed to merge PR. Ensure there are no conflicts and `gh` is authenticated.'))
+  }
+}
