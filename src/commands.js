@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { execSync } from 'child_process'
-import { isGitInitialized, initGit, checkoutBaseAndCreateBranch, commitAll, getDiff, status } from './git.js'
+import { isGitInitialized, initGit, checkoutBaseAndCreateBranch, commitAll, getDiff, status, createPullRequest } from './git.js'
 import { generateSemanticReview } from './ai.js'
 
 export function initCommand() {
@@ -60,6 +60,9 @@ export async function shadowStartCommand(intent) {
     console.log('Committing changes to the shadow branch...')
     commitAll(`Implemented feature: ${intent}`)
     console.log('Done! Your shadow branch is ready with the implemented feature.')
+    
+    console.log('Attempting to create a Pull Request...')
+    createPullRequest(shadowBranchName, intent)
   } catch (error) {
     console.error('Failed to implement feature using Gemini CLI:', error.message)
   }
