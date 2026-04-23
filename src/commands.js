@@ -50,7 +50,7 @@ export function initCommand() {
   console.log('Ready to trace impacts and shadow intents!')
 }
 
-export async function shadowStartCommand(intent) {
+export async function shadowStartCommand(intent, options = {}) {
   if (!isGitInitialized()) {
     console.error('Git is not initialized. Run "flux init" first.')
     process.exit(1)
@@ -58,27 +58,48 @@ export async function shadowStartCommand(intent) {
 
   ensureGitignore()
 
-  // Format intent string into a safe branch/shadow name
-  const uniqueId = crypto.randomBytes(3).toString('hex')
-  const safeIntentName = intent
-    .trim()
-    .replace(/[^a-zA-Z0-9-]/g, '-')
-    .toLowerCase()
-    .substring(0, 30)
-    .replace(/-+$/, '')
-  const shadowDirName = `${uniqueId}-${safeIntentName}`
-  const shadowBranchName = `shadow/${shadowDirName}`
-  const shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
+  let shadowDirName;
+  let shadowBranchName;
+  let shadowPath;
+  let isNew = true;
 
-  console.log(`Spawning shadow workspace for intent: "${intent}"`)
-  console.log(`Under the hood, creating isolated shadow namespace: ${shadowBranchName}...`)
-  try {
-    createShadowWorktree(shadowBranchName, shadowPath)
-    console.log(`Success! You have now entered the shadow workspace for ${shadowDirName}.`)
-    console.log('Changes made here are safe from main state collisions.')
-  } catch (error) {
-    console.error('Failed to spawn shadow workspace.', error)
-    return
+  if (options.id) {
+    const worktreesDir = path.join(process.cwd(), 'worktrees')
+    if (fs.existsSync(worktreesDir)) {
+      const dirs = fs.readdirSync(worktreesDir)
+      shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
+    }
+    if (!shadowDirName) {
+      console.error(`Could not find existing worktree for id: ${options.id}`)
+      return
+    }
+    shadowBranchName = `shadow/${shadowDirName}`
+    shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
+    isNew = false;
+    console.log(`Resuming existing shadow workspace: ${shadowDirName}`)
+  } else {
+    // Format intent string into a safe branch/shadow name
+    const uniqueId = crypto.randomBytes(3).toString('hex')
+    const safeIntentName = intent
+      .trim()
+      .replace(/[^a-zA-Z0-9-]/g, '-')
+      .toLowerCase()
+      .substring(0, 30)
+      .replace(/-+$/, '')
+    shadowDirName = `${uniqueId}-${safeIntentName}`
+    shadowBranchName = `shadow/${shadowDirName}`
+    shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
+
+    console.log(`Spawning shadow workspace for intent: "${intent}"`)
+    console.log(`Under the hood, creating isolated shadow namespace: ${shadowBranchName}...`)
+    try {
+      createShadowWorktree(shadowBranchName, shadowPath)
+      console.log(`Success! You have now entered the shadow workspace for ${shadowDirName}.`)
+      console.log('Changes made here are safe from main state collisions.')
+    } catch (error) {
+      console.error('Failed to spawn shadow workspace.', error)
+      return
+    }
   }
 
   console.log('Executing Gemini CLI to implement the feature... (This may take a minute)')
@@ -91,8 +112,12 @@ export async function shadowStartCommand(intent) {
     commitAll(`Implemented feature: ${intent}`, shadowPath)
     console.log('Done! Your shadow branch is ready with the implemented feature.')
 
-    console.log('Attempting to create a Pull Request...')
-    createPullRequest(shadowBranchName, intent, shadowPath)
+    if (isNew) {
+      console.log('Attempting to create a Pull Request...')
+      createPullRequest(shadowBranchName, intent, shadowPath)
+    } else {
+      console.log('Changes added to existing Pull Request/Branch.')
+    }
   } catch (error) {
     console.error('Failed to implement feature using Gemini CLI:', error.message)
   }
