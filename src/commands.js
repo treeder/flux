@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { execSync } from 'child_process'
-import { isGitInitialized, initGit, checkoutBaseAndCreateBranch, commitAll, getDiff, status, createPullRequest } from './git.js'
+import { isGitInitialized, initGit, checkoutBaseAndCreateBranch, createShadowWorktree, commitAll, getDiff, status, createPullRequest } from './git.js'
 import { generateSemanticReview } from './ai.js'
 
 export function initCommand() {
@@ -39,11 +39,12 @@ export async function shadowStartCommand(intent) {
     .replace(/[^a-zA-Z0-9-]/g, '-')
     .toLowerCase()
   const shadowBranchName = `shadow/${safeIntentName}`
+  const shadowPath = path.join(process.cwd(), 'worktrees', safeIntentName)
 
   console.log(`Spawning shadow workspace for intent: "${intent}"`)
   console.log(`Under the hood, creating isolated shadow namespace: ${shadowBranchName}...`)
   try {
-    checkoutBaseAndCreateBranch(shadowBranchName)
+    createShadowWorktree(shadowBranchName, shadowPath)
     console.log(`Success! You have now entered the shadow workspace for ${safeIntentName}.`)
     console.log('Changes made here are safe from main state collisions.')
   } catch (error) {
@@ -55,14 +56,14 @@ export async function shadowStartCommand(intent) {
   try {
     const safePrompt = intent.replace(/"/g, '\\"')
     console.log(`> gemini -y -p "${intent}"`)
-    execSync(`gemini -y -p "${safePrompt}"`, { stdio: 'inherit' })
+    execSync(`gemini -y -p "${safePrompt}"`, { stdio: 'inherit', cwd: shadowPath })
 
     console.log('Committing changes to the shadow branch...')
-    commitAll(`Implemented feature: ${intent}`)
+    commitAll(`Implemented feature: ${intent}`, shadowPath)
     console.log('Done! Your shadow branch is ready with the implemented feature.')
     
     console.log('Attempting to create a Pull Request...')
-    createPullRequest(shadowBranchName, intent)
+    createPullRequest(shadowBranchName, intent, shadowPath)
   } catch (error) {
     console.error('Failed to implement feature using Gemini CLI:', error.message)
   }
