@@ -13,6 +13,8 @@ import {
   status,
   createPullRequest,
   mergePullRequest,
+  pullBase,
+  removeWorktree,
 } from './git.js'
 import { generateSemanticReview } from './ai.js'
 
@@ -223,5 +225,7 @@ export async function mergeCommand(options = {}) {
 
   console.log(pc.cyan(`🔀 Initiating merge for shadow workspace: ${pc.bold(shadowDirName)}`))
 
-  mergePullRequest(shadowBranchName, shadowPath)
+  removeWorktree(shadowPath, process.cwd())
+  mergePullRequest(shadowBranchName, process.cwd())
+  pullBase(process.cwd())
 }

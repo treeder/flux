@@ -144,6 +144,7 @@ export function createPullRequest(branchName, title, cwd = process.cwd()) {
     console.log(
       pc.yellow(
         '⚠️ Note: Could not automatically create PR. Ensure `gh` CLI is installed/authenticated and this repo has an `origin` remote.',
+        e,
       ),
     )
   }
@@ -155,6 +156,27 @@ export function mergePullRequest(branchName, cwd = process.cwd()) {
     run(`gh pr merge ${branchName} --squash --delete-branch`, cwd)
     console.log(pc.green('✅ Successfully merged Pull Request!'))
   } catch (e) {
-    console.error(pc.red('❌ Failed to merge PR. Ensure there are no conflicts and `gh` is authenticated.'))
+    console.error(pc.red('❌ Failed to merge PR. Ensure there are no conflicts and `gh` is authenticated.'), e)
+  }
+}
+
+export function removeWorktree(shadowPath, cwd = process.cwd()) {
+  try {
+    console.log(pc.gray(`🧹 Cleaning up shadow worktree...`))
+    run(`git worktree remove --force ${shadowPath}`, cwd)
+  } catch (e) {
+    console.error(pc.yellow(`⚠️ Could not automatically remove worktree at ${shadowPath}.`), e)
+  }
+}
+
+export function pullBase(cwd = process.cwd()) {
+  try {
+    const baseBranch = getBaseBranch(cwd)
+    console.log(pc.cyan(`📥 Pulling latest changes for ${baseBranch} in root workspace...`))
+    run(`git checkout ${baseBranch}`, cwd)
+    run('git pull', cwd)
+    console.log(pc.green('✅ Root workspace synced successfully!'))
+  } catch (e) {
+    console.error(pc.red('❌ Failed to pull root workspace. You may have uncommitted changes.'), e)
   }
 }
