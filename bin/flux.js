@@ -12,8 +12,6 @@ program.name('flux').description('AI-Native Agentic Version Control System MVP')
 
 program.command('init').description('Initialize a new flux repository').action(initCommand)
 
-const shadow = program.command('shadow').description('Manage shadow workspaces for agentic intents')
-
 // Add top-level start command as a convenient alias
 program
   .command('start <intent>')
