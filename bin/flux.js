@@ -2,7 +2,7 @@
 
 import { Command } from 'commander'
 import dotenv from 'dotenv'
-import { initCommand, shadowStartCommand, reviewCommand, mergeCommand } from '../src/commands.js'
+import { initCommand, shadowStartCommand, reviewCommand, mergeCommand, pushCommand } from '../src/commands.js'
 
 dotenv.config()
 
@@ -38,5 +38,12 @@ program
   .description('Merge the pull request for a specific shadow workspace')
   .option('--id <id>', 'Unique ID of existing shadow workspace to merge')
   .action((options) => mergeCommand({ ...program.opts(), ...options }))
+
+program
+  .command('push <message>')
+  .description('Take current changes, create a worktree, commit, push, and create a PR')
+  .option('--id <id>', 'Unique ID for the new shadow workspace (optional)')
+  .action((message, options) => pushCommand(message, { ...program.opts(), ...options }))
+
 
 program.parse(process.argv)

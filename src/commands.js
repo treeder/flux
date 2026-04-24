@@ -229,3 +229,64 @@ export async function mergeCommand(options = {}) {
   mergePullRequest(shadowBranchName, process.cwd())
   pullBase(process.cwd())
 }
+
+export async function pushCommand(message, options = {}) {
+  if (!isGitInitialized()) {
+    console.error(pc.red('❌ Git is not initialized. Run "flux init" first.'))
+    process.exit(1)
+  }
+
+  ensureGitignore()
+
+  const currentStatus = status(process.cwd())
+  if (!currentStatus) {
+    console.log(pc.yellow('⚠️ No changes detected in the workspace to push.'))
+    return
+  }
+
+  if (!message) {
+    console.error(pc.red('❌ Please provide a commit/PR message.'))
+    process.exit(1)
+  }
+
+  const uniqueId = options.id || crypto.randomBytes(3).toString('hex')
+  const safeIntentName = message
+    .trim()
+    .replace(/[^a-zA-Z0-9-]/g, '-')
+    .toLowerCase()
+    .substring(0, 30)
+    .replace(/-+$/, '')
+  const shadowDirName = `${uniqueId}-${safeIntentName}`
+  const shadowBranchName = `flux/${shadowDirName}`
+  const shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
+
+  console.log(pc.cyan(`📦 Packaging current changes into shadow workspace: ${pc.bold(shadowDirName)}`))
+
+  try {
+    console.log(pc.gray('Stashing current changes...'))
+    execSync('git stash push -u -m "flux-push-temp"', { cwd: process.cwd(), stdio: 'inherit' })
+
+    createShadowWorktree(shadowBranchName, shadowPath)
+
+    console.log(pc.gray('Applying changes to shadow workspace...'))
+    try {
+      execSync('git stash pop', { cwd: shadowPath, stdio: 'inherit' })
+    } catch (stashError) {
+      console.error(pc.yellow('⚠️ Note: git stash pop had some output/warnings, but changes should be applied.'))
+    }
+
+    console.log(pc.blue('💾 Committing changes...'))
+    commitAll(message, shadowPath)
+
+    console.log(pc.magenta('📤 Creating Pull Request...'))
+    createPullRequest(shadowBranchName, message, shadowPath)
+
+    console.log(pc.gray('Resetting main workspace to ensure clean state...'))
+    execSync('git reset --hard HEAD', { cwd: process.cwd(), stdio: 'inherit' })
+
+    console.log(pc.green('✅ Done! Changes pushed and PR created.'))
+    console.log(pc.yellow(`💡 To review or continue working, use the ID: ${pc.bold(uniqueId)}`))
+  } catch (error) {
+    console.error(pc.red('❌ Failed to push changes.'), error)
+  }
+}

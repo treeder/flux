@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -19,6 +20,9 @@
     "commander": "^14.0.3",
     "dotenv": "^17.4.2",
     "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
   },
   "prettier": {
     "semi": false,
