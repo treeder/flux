@@ -54,6 +54,22 @@ export function initCommand() {
   console.log(pc.cyan('🚀 Ready to trace impacts and shadow intents!'))
 }
 
+export async function issueCommand(issue, options = {}) {
+  console.log(pc.cyan(`📥 Fetching issue ${pc.bold(issue)} from GitHub...`));
+  try {
+    const out = execSync(`gh issue view ${issue} --json title,body,number`, { encoding: 'utf-8' });
+    const data = JSON.parse(out);
+    const intent = `${data.title}\n\n${data.body}`;
+    console.log(pc.yellow('💡 Note: The linked PR will automatically move the issue to "In Progress" in configured GitHub Projects when created.'));
+    await shadowStartCommand(intent, { ...options, issue: data.number, title: data.title });
+  } catch (e) {
+    console.error(pc.red(`❌ Failed to fetch issue ${issue}. Make sure 'gh' CLI is authenticated and the issue exists.`));
+    if (e.stdout) console.error(e.stdout.toString());
+    if (e.stderr) console.error(e.stderr.toString());
+    process.exit(1);
+  }
+}
+
 export async function shadowStartCommand(intent, options = {}) {
   if (!isGitInitialized()) {
     console.error(pc.red('❌ Git is not initialized. Run "flux init" first.'))
@@ -108,17 +124,20 @@ export async function shadowStartCommand(intent, options = {}) {
 
   console.log(pc.magenta('🤖 Executing Gemini CLI to implement the feature... (This may take a minute)'))
   try {
-    const safePrompt = intent.replace(/"/g, '\\"')
-    console.log(pc.gray(`> gemini -y -p "${intent}"`))
-    execSync(`gemini -y -p "${safePrompt}"`, { stdio: 'inherit', cwd: shadowPath })
+    // Write intent to a temporary file to avoid shell injection vulnerabilities
+    const tempPromptPath = path.join(shadowPath, '.flux_prompt.txt')
+    fs.writeFileSync(tempPromptPath, intent)
+    console.log(pc.gray(`> gemini -y -f ${tempPromptPath}`))
+    execSync(`gemini -y -f ".flux_prompt.txt"`, { stdio: 'inherit', cwd: shadowPath })
+    fs.unlinkSync(tempPromptPath)
 
     console.log(pc.blue('💾 Committing changes to the shadow branch...'))
-    commitAll(`Implemented feature: ${intent}`, shadowPath)
+    commitAll(`Implemented feature: ${PR_TITLE}`, shadowPath)
     console.log(pc.green('✅ Done! Your shadow branch is ready with the implemented feature.'))
 
     if (isNew) {
       console.log(pc.magenta('📤 Attempting to create a Pull Request...'))
-      createPullRequest(shadowBranchName, intent, shadowPath)
+      createPullRequest(shadowBranchName, PR_TITLE, shadowPath, options.issue)
     } else {
       console.log(pc.blue('🔗 Changes added to existing Pull Request/Branch. Pushing...'))
       execSync('git push', { stdio: 'inherit', cwd: shadowPath })
@@ -279,7 +298,7 @@ export async function pushCommand(message, options = {}) {
     commitAll(message, shadowPath)
 
     console.log(pc.magenta('📤 Creating Pull Request...'))
-    createPullRequest(shadowBranchName, message, shadowPath)
+    createPullRequest(shadowBranchName, message, shadowPath, null)
 
     console.log(pc.gray('Resetting main workspace to ensure clean state...'))
     execSync('git reset --hard HEAD', { cwd: process.cwd(), stdio: 'inherit' })
