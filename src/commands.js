@@ -124,6 +124,7 @@ export async function shadowStartCommand(intent, options = {}) {
 
   console.log(pc.magenta('🤖 Executing Gemini CLI to implement the feature... (This may take a minute)'))
   try {
+    const PR_TITLE = (options.title || intent.split('\n')[0]).substring(0, 100)
     // Write intent to a temporary file to avoid shell injection vulnerabilities
     const tempPromptPath = path.join(shadowPath, '.flux_prompt.txt')
     fs.writeFileSync(tempPromptPath, intent)
