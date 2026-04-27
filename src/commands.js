@@ -57,7 +57,7 @@ export function initCommand() {
 export async function issueCommand(issue, options = {}) {
   console.log(pc.cyan(`📥 Fetching issue ${pc.bold(issue)} from GitHub...`));
   try {
-    const out = execSync(`gh issue view ${issue} --json title,body,number`, { encoding: 'utf-8' });
+    const out = execSync(`gh issue view ${JSON.stringify(issue)} --json title,body,number`, { encoding: 'utf-8' });
     const data = JSON.parse(out);
     const intent = `${data.title}\n\n${data.body}`;
     console.log(pc.yellow('💡 Note: The linked PR will automatically move the issue to "In Progress" in configured GitHub Projects when created.'));
