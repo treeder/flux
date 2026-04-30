@@ -290,3 +290,42 @@ export async function pushCommand(message, options = {}) {
     console.error(pc.red('❌ Failed to push changes.'), error)
   }
 }
+
+export async function removeCommand(options = {}) {
+  if (!isGitInitialized()) {
+    console.error(pc.red('❌ Git is not initialized. Run "flux init" first.'))
+    process.exit(1)
+  }
+
+  if (!options.id) {
+    console.error(pc.red('❌ Please provide the workspace ID using --id <id> to remove.'))
+    process.exit(1)
+  }
+
+  const worktreesDir = path.join(process.cwd(), 'worktrees')
+  let shadowDirName
+  if (fs.existsSync(worktreesDir)) {
+    const dirs = fs.readdirSync(worktreesDir)
+    shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
+  }
+  if (!shadowDirName) {
+    console.error(pc.red(`❌ Could not find existing worktree for id: ${options.id}`))
+    return
+  }
+
+  const shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
+  const shadowBranchName = `flux/${shadowDirName}`
+
+  console.log(pc.cyan(`🗑️  Removing shadow workspace: ${pc.bold(shadowDirName)}`))
+
+  removeWorktree(shadowPath, process.cwd())
+
+  try {
+    execSync(`git branch -D ${shadowBranchName}`, { cwd: process.cwd(), stdio: 'ignore' })
+    console.log(pc.gray(`🧹 Deleted branch ${shadowBranchName}`))
+  } catch (e) {
+    // Ignore error if branch deletion fails
+  }
+
+  console.log(pc.green('✅ Workspace removed successfully!'))
+}

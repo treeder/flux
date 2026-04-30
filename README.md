@@ -74,3 +74,13 @@ This is nice for quick little changes that you want to get in fast. No AI involv
 ```bash
 flux push "update README"
 ```
+
+### `flux remove`
+
+Remove a shadow workspace (worktree) and its associated branch by ID.
+
+```bash
+flux remove --id <ID>
+# or
+flux rm --id <ID>
+```

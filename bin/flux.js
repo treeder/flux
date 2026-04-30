@@ -2,7 +2,7 @@
 
 import { Command } from 'commander'
 import dotenv from 'dotenv'
-import { initCommand, shadowStartCommand, reviewCommand, mergeCommand, pushCommand } from '../src/commands.js'
+import { initCommand, shadowStartCommand, reviewCommand, mergeCommand, pushCommand, removeCommand } from '../src/commands.js'
 
 dotenv.config()
 
@@ -45,5 +45,11 @@ program
   .option('--id <id>', 'Unique ID for the new shadow workspace (optional)')
   .action((message, options) => pushCommand(message, { ...program.opts(), ...options }))
 
+program
+  .command('remove')
+  .alias('rm')
+  .description('Remove a shadow workspace (worktree) by ID')
+  .requiredOption('--id <id>', 'Unique ID of existing shadow workspace to remove')
+  .action((options) => removeCommand({ ...program.opts(), ...options }))
 
 program.parse(process.argv)
