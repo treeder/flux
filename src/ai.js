@@ -1,22 +1,43 @@
 import { GoogleGenAI } from '@google/genai'
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
+import readline from 'readline/promises'
 
 let genAI
 
-function getAI() {
+async function getAI() {
   if (!genAI) {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      console.error('Error: GEMINI_API_KEY environment variable is missing.')
-      console.error('Please set it using: export GEMINI_API_KEY="your-key"')
-      process.exit(1)
+    let apiKey = process.env.GEMINI_API_KEY
+    const fluxFile = path.join(os.homedir(), '.flux')
+
+    if (!apiKey && fs.existsSync(fluxFile)) {
+      apiKey = fs.readFileSync(fluxFile, 'utf8').trim()
     }
-    genAI = new GoogleGenAI(apiKey)
+
+    if (!apiKey) {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      })
+      apiKey = await rl.question('Please enter your Gemini API Key: ')
+      rl.close()
+
+      if (!apiKey || !apiKey.trim()) {
+        console.error('Error: Gemini API Key is required.')
+        process.exit(1)
+      }
+
+      fs.writeFileSync(fluxFile, apiKey.trim())
+      console.log(`Saved API Key to ${fluxFile}`)
+    }
+    genAI = new GoogleGenAI(apiKey.trim())
   }
   return genAI
 }
 
 export async function generateSemanticReview(diffText) {
-  const ai = getAI()
+  const ai = await getAI()
   // We use gemini-2.5-flash as default, or whatever fast model is suitable.
   // We can use gemini-1.5-pro for better analysis if needed.
 
@@ -62,5 +83,3 @@ ${diffText}
     throw error
   }
 }
-
-
