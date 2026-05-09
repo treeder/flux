@@ -15,6 +15,8 @@ import {
   mergePullRequest,
   pullBase,
   removeWorktree,
+  getCurrentBranch,
+  getBaseBranch,
 } from './git.js'
 import { generateSemanticReview } from './ai.js'
 
@@ -204,29 +206,39 @@ export async function mergeCommand(options = {}) {
     process.exit(1)
   }
 
-  if (!options.id) {
-    console.error(pc.red('❌ Please provide the workspace ID using --id <id> to merge.'))
-    process.exit(1)
+  let branchToMerge;
+  let shadowPathToRemove = null;
+
+  if (options.id) {
+    const worktreesDir = path.join(process.cwd(), 'worktrees')
+    let shadowDirName
+    if (fs.existsSync(worktreesDir)) {
+      const dirs = fs.readdirSync(worktreesDir)
+      shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
+    }
+    if (!shadowDirName) {
+      console.error(pc.red(`❌ Could not find existing worktree for id: ${options.id}`))
+      return
+    }
+
+    branchToMerge = `flux/${shadowDirName}`
+    shadowPathToRemove = path.join(process.cwd(), 'worktrees', shadowDirName)
+  } else {
+    branchToMerge = getCurrentBranch(process.cwd())
+    const baseBranch = getBaseBranch(process.cwd())
+    if (!branchToMerge || branchToMerge === baseBranch) {
+      console.error(pc.red('❌ Please provide the workspace ID using --id <id> or run this command from the branch you want to merge.'))
+      process.exit(1)
+    }
   }
 
-  const worktreesDir = path.join(process.cwd(), 'worktrees')
-  let shadowDirName
-  if (fs.existsSync(worktreesDir)) {
-    const dirs = fs.readdirSync(worktreesDir)
-    shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
+  console.log(pc.cyan(`🔀 Initiating merge for branch: ${pc.bold(branchToMerge)}`))
+
+  if (shadowPathToRemove) {
+    removeWorktree(shadowPathToRemove, process.cwd())
   }
-  if (!shadowDirName) {
-    console.error(pc.red(`❌ Could not find existing worktree for id: ${options.id}`))
-    return
-  }
-
-  const shadowBranchName = `flux/${shadowDirName}`
-  const shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
-
-  console.log(pc.cyan(`🔀 Initiating merge for shadow workspace: ${pc.bold(shadowDirName)}`))
-
-  removeWorktree(shadowPath, process.cwd())
-  mergePullRequest(shadowBranchName, process.cwd())
+  
+  mergePullRequest(branchToMerge, process.cwd())
   pullBase(process.cwd())
 }
 

@@ -44,6 +44,14 @@ export function getBaseBranch(cwd = process.cwd()) {
   return 'main'
 }
 
+export function getCurrentBranch(cwd = process.cwd()) {
+  try {
+    return run('git branch --show-current', cwd)
+  } catch (e) {
+    return ''
+  }
+}
+
 export function createBranch(branchName) {
   run(`git checkout -b ${branchName}`)
 }

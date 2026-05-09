@@ -14,9 +14,7 @@ AI-Native Agentic Version Control System MVP.
 To use the `flux` command globally on your local machine, run from the project root:
 
 ```bash
-npm install -g .
-# or
-npm link
+npm install -g treeder/flux
 ```
 
 ## CLI Commands

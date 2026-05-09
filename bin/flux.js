@@ -43,7 +43,7 @@ program
 
 program
   .command('merge')
-  .description('Merge the pull request for a specific shadow workspace')
+  .description('Merge the pull request for a specific shadow workspace or the current branch')
   .option('--id <id>', 'Unique ID of existing shadow workspace to merge')
   .action((options) => mergeCommand({ ...program.opts(), ...options }))
 
