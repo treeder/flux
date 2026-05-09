@@ -147,7 +147,8 @@ export async function shadowStartCommand(intent, options = {}) {
   try {
     const safePrompt = finalIntent.replace(/"/g, '\\"')
     console.log(pc.gray(`> ${aiTool} -y -p "[intent]"`))
-    execSync(`${aiTool} -y -p "${safePrompt}"`, { stdio: 'inherit', cwd: shadowPath })
+    const { execFileSync } = await import('child_process')
+    execFileSync(aiTool, ['-y', '-p', finalIntent], { stdio: 'inherit', cwd: shadowPath })
 
     console.log(pc.blue('💾 Committing changes to the shadow branch...'))
     const isUrl = options.issue && String(options.issue).startsWith('http')
