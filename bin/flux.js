@@ -28,6 +28,7 @@ program
   .description('Start a new shadow workspace for a specific intent (alias for shadow start)')
   .option('--id <id>', 'Unique ID of existing shadow workspace to continue applying changes to')
   .option('--issue <issue>', 'GitHub Issue number to fetch details from and link to')
+  .option('--jules', 'Use jules instead of gemini for implementation')
   .action((intent, options) => shadowStartCommand(intent, { ...program.opts(), ...options }))
 
 program
@@ -35,6 +36,7 @@ program
   .description('Run changes in a shadow workspace (optionally use --id to continue)')
   .option('--id <id>', 'Unique ID of existing shadow workspace to continue applying changes to')
   .option('--issue <issue>', 'GitHub Issue number to fetch details from and link to')
+  .option('--jules', 'Use jules instead of gemini for implementation')
   .action((intent, options) => shadowStartCommand(intent, { ...program.opts(), ...options }))
 
 program

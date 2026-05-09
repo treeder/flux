@@ -141,11 +141,14 @@ export async function shadowStartCommand(intent, options = {}) {
     }
   }
 
-  console.log(pc.magenta('🤖 Executing Gemini CLI to implement the feature... (This may take a minute)'))
+  const aiTool = options.jules ? 'jules' : 'gemini'
+  const aiToolName = options.jules ? 'Jules' : 'Gemini'
+  console.log(pc.magenta(`🤖 Executing ${aiToolName} CLI to implement the feature... (This may take a minute)`))
   try {
     const safePrompt = finalIntent.replace(/"/g, '\\"')
-    console.log(pc.gray(`> gemini -y -p "[intent]"`))
-    execSync(`gemini -y -p "${safePrompt}"`, { stdio: 'inherit', cwd: shadowPath })
+    console.log(pc.gray(`> ${aiTool} -y -p "[intent]"`))
+    const { execFileSync } = await import('child_process')
+    execFileSync(aiTool, ['-y', '-p', finalIntent], { stdio: 'inherit', cwd: shadowPath })
 
     console.log(pc.blue('💾 Committing changes to the shadow branch...'))
     const isUrl = options.issue && String(options.issue).startsWith('http')
@@ -165,7 +168,7 @@ export async function shadowStartCommand(intent, options = {}) {
       execSync('git push', { stdio: 'inherit', cwd: shadowPath })
     }
   } catch (error) {
-    console.error(pc.red(`❌ Failed to implement feature using Gemini CLI: ${error.message}`))
+    console.error(pc.red(`❌ Failed to implement feature using ${aiToolName} CLI: ${error.message}`))
   }
   console.log(pc.yellow(`💡 To continue making changes, run: ${pc.bold(`flux run --id ${uniqueId} "new changes"`)}`))
   console.log(pc.yellow(`📊 To review the changes, run: ${pc.bold(`flux review --id ${uniqueId}`)}`))
