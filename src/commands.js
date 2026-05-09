@@ -194,7 +194,7 @@ export async function reviewCommand(options = {}) {
       console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold('flux merge --id <ID>')}`))
     }
   } catch (err) {
-    console.error(pc.red('❌ Failed to obtain Semantic Review. Make sure GEMINI_API_KEY is set and valid.'))
+    console.error(pc.red(`❌ Failed to obtain Semantic Review. Make sure GEMINI_API_KEY is set and valid. Error: ${err.message}`))
   }
 }
 

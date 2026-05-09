@@ -31,7 +31,11 @@ async function getAI() {
       fs.writeFileSync(fluxFile, apiKey.trim())
       console.log(`Saved API Key to ${fluxFile}`)
     }
-    genAI = new GoogleGenAI(apiKey.trim())
+
+    apiKey = apiKey.trim()
+    console.log(`Using Gemini API Key: ${apiKey}`)
+
+    genAI = new GoogleGenAI({apiKey})
   }
   return genAI
 }
