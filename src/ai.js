@@ -1,14 +1,14 @@
-import { GoogleGenAI } from '@google/genai'
+import { jules } from '@google/jules-sdk'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import readline from 'readline/promises'
 
-let genAI
+let julesClient
 
 async function getAI() {
-  if (!genAI) {
-    let apiKey = process.env.GEMINI_API_KEY
+  if (!julesClient) {
+    let apiKey = process.env.JULES_API_KEY || process.env.GEMINI_API_KEY
     const fluxFile = path.join(os.homedir(), '.flux')
 
     if (!apiKey && fs.existsSync(fluxFile)) {
@@ -20,11 +20,11 @@ async function getAI() {
         input: process.stdin,
         output: process.stdout,
       })
-      apiKey = await rl.question('Please enter your Gemini API Key: ')
+      apiKey = await rl.question('Please enter your API Key: ')
       rl.close()
 
       if (!apiKey || !apiKey.trim()) {
-        console.error('Error: Gemini API Key is required.')
+        console.error('Error: API Key is required.')
         process.exit(1)
       }
 
@@ -33,29 +33,28 @@ async function getAI() {
     }
 
     apiKey = apiKey.trim()
-    console.log(`Using Gemini API Key: ${apiKey}`)
+    console.log(`Using API Key: ${apiKey}`)
 
-    genAI = new GoogleGenAI({apiKey})
+    julesClient = jules.with({ apiKey })
   }
-  return genAI
+  return julesClient
 }
 
 export async function generateSemanticReview(diffText) {
-  const ai = await getAI()
-  // We use gemini-2.5-flash as default, or whatever fast model is suitable.
-  // We can use gemini-1.5-pro for better analysis if needed.
+  const client = await getAI()
 
   const prompt = `
 You are the AI core of an Agentic Version Control System. 
 The user has made the following code modifications (provided as a git diff).
 Analyze the changes to determine the high-level semantic "Intent" of these changes, and score the Complexity and Confidence.
 
+Create a json file named result.json with the following format:
 {
   "intent": "A clear, concise summary of the high-level goal of these changes",
   "details": ["Bullet 1", "Bullet 2", "Detailed explanation of AST-level changes here"],
-  "complexityScore": 0-100, // How complex are these changes?
-  "confidenceScore": 0-100, // How confident are you that these changes won't break things?
-  "autoApprovable": true or false // Based on the confidence and complexity, can this be auto-merged?
+  "complexityScore": 0-100,
+  "confidenceScore": 0-100,
+  "autoApprovable": true or false
 }
 
 Here is the diff:
@@ -63,25 +62,23 @@ ${diffText}
 `
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseJsonSchema: {
-          type: 'object',
-          properties: {
-            intent: { type: 'string' },
-            details: { type: 'array', items: { type: 'string' } },
-            complexityScore: { type: 'number' },
-            confidenceScore: { type: 'number' },
-            autoApprovable: { type: 'boolean' },
-          },
-          required: ['intent', 'details', 'complexityScore', 'confidenceScore', 'autoApprovable'],
-        },
-      },
-    })
-    return JSON.parse(response.text)
+    const session = await client.session({ prompt })
+    const result = await session.result()
+    const files = result.generatedFiles()
+    const answer = files.get('result.json')
+    
+    if (!answer || !answer.content) {
+      throw new Error('AI did not return the expected result.json file.')
+    }
+    
+    let rawContent = answer.content.trim()
+    if (rawContent.startsWith('\`\`\`json')) {
+      rawContent = rawContent.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim()
+    } else if (rawContent.startsWith('\`\`\`')) {
+      rawContent = rawContent.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim()
+    }
+
+    return JSON.parse(rawContent)
   } catch (error) {
     console.error('AI Generation failed:', error.message)
     throw error
