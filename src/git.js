@@ -155,6 +155,7 @@ export function createPullRequest(branchName, title, cwd = process.cwd()) {
         e,
       ),
     )
+    throw e
   }
 }
 
@@ -165,6 +166,7 @@ export function mergePullRequest(branchName, cwd = process.cwd()) {
     console.log(pc.green('✅ Successfully merged Pull Request!'))
   } catch (e) {
     console.error(pc.red('❌ Failed to merge PR. Ensure there are no conflicts and `gh` is authenticated.'), e)
+    throw e
   }
 }
 
