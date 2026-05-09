@@ -122,7 +122,7 @@ export function status(cwd = process.cwd()) {
   return run('git status --short', cwd)
 }
 
-export function createPullRequest(branchName, title, cwd = process.cwd()) {
+export async function createPullRequest(branchName, title, cwd = process.cwd()) {
   try {
     console.log(pc.magenta(`📤 Pushing branch ${branchName} to origin...`))
     run(`git push -u origin ${branchName}`, cwd)
@@ -138,6 +138,9 @@ export function createPullRequest(branchName, title, cwd = process.cwd()) {
     } catch (e) {
       // Ignore and proceed to create if list fails
     }
+
+    console.log(pc.yellow('⏳ Delaying PR creation for 2 minutes to reduce notification noise...'))
+    await new Promise((resolve) => setTimeout(resolve, 120000))
 
     console.log(pc.magenta('🔗 Creating Pull Request...'))
     const prUrl = run(

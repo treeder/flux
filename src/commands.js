@@ -120,7 +120,7 @@ export async function shadowStartCommand(intent, options = {}) {
 
     if (isNew) {
       console.log(pc.magenta('📤 Attempting to create a Pull Request...'))
-      createPullRequest(shadowBranchName, intent, shadowPath)
+      await createPullRequest(shadowBranchName, intent, shadowPath)
     } else {
       console.log(pc.blue('🔗 Changes added to existing Pull Request/Branch. Pushing...'))
       execSync('git push', { stdio: 'inherit', cwd: shadowPath })
@@ -291,7 +291,7 @@ export async function pushCommand(message, options = {}) {
     commitAll(message, shadowPath)
 
     console.log(pc.magenta('📤 Creating Pull Request...'))
-    createPullRequest(shadowBranchName, message, shadowPath)
+    await createPullRequest(shadowBranchName, message, shadowPath)
 
     console.log(pc.gray('Resetting main workspace to ensure clean state...'))
     execSync('git reset --hard HEAD', { cwd: process.cwd(), stdio: 'inherit' })
