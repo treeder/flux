@@ -64,6 +64,34 @@ export async function shadowStartCommand(intent, options = {}) {
 
   ensureGitignore()
 
+  let finalIntent = intent || ''
+  let issueDetails = null
+
+  if (options.issue) {
+    const isUrl = String(options.issue).startsWith('http')
+    const issueRef = isUrl ? options.issue : `#${options.issue}`
+    try {
+      console.log(pc.cyan(`📦 Fetching details for issue ${issueRef}...`))
+      const issueOutput = execSync(`gh issue view ${options.issue} --json title,body`, { encoding: 'utf-8' })
+      issueDetails = JSON.parse(issueOutput)
+
+      const issuePrompt = `${issueDetails.title}\n\n${issueDetails.body}`
+      if (finalIntent) {
+        finalIntent = `${finalIntent}\n\n${issuePrompt}`
+      } else {
+        finalIntent = issuePrompt
+      }
+    } catch (e) {
+      console.error(pc.red(`❌ Failed to fetch issue ${options.issue}. Ensure gh CLI is authenticated.`), e.message)
+      process.exit(1)
+    }
+  }
+
+  if (!finalIntent) {
+    console.error(pc.red('❌ Please provide an intent or an issue number via --issue.'))
+    process.exit(1)
+  }
+
   let shadowDirName
   let shadowBranchName
   let shadowPath
@@ -86,7 +114,8 @@ export async function shadowStartCommand(intent, options = {}) {
     console.log(pc.cyan(`🔁 Resuming existing shadow workspace: ${pc.bold(shadowDirName)}`))
   } else {
     // Format intent string into a safe branch/shadow name
-    const safeIntentName = intent
+    const baseName = issueDetails ? issueDetails.title : finalIntent
+    const safeIntentName = baseName
       .trim()
       .replace(/[^a-zA-Z0-9-]/g, '-')
       .toLowerCase()
@@ -96,7 +125,11 @@ export async function shadowStartCommand(intent, options = {}) {
     shadowBranchName = `flux/${shadowDirName}`
     shadowPath = path.join(process.cwd(), 'worktrees', shadowDirName)
 
-    console.log(pc.cyan(`🌱 Spawning shadow workspace for intent: "${pc.italic(intent)}"`))
+    console.log(
+      pc.cyan(
+        `🌱 Spawning shadow workspace for intent: "${pc.italic(baseName.substring(0, 50))}${baseName.length > 50 ? '...' : ''}"`,
+      ),
+    )
     console.log(pc.gray(`Under the hood, creating isolated shadow namespace: ${shadowBranchName}...`))
     try {
       createShadowWorktree(shadowBranchName, shadowPath)
@@ -110,17 +143,23 @@ export async function shadowStartCommand(intent, options = {}) {
 
   console.log(pc.magenta('🤖 Executing Gemini CLI to implement the feature... (This may take a minute)'))
   try {
-    const safePrompt = intent.replace(/"/g, '\\"')
-    console.log(pc.gray(`> gemini -y -p "${intent}"`))
+    const safePrompt = finalIntent.replace(/"/g, '\\"')
+    console.log(pc.gray(`> gemini -y -p "[intent]"`))
     execSync(`gemini -y -p "${safePrompt}"`, { stdio: 'inherit', cwd: shadowPath })
 
     console.log(pc.blue('💾 Committing changes to the shadow branch...'))
-    commitAll(`Implemented feature: ${intent}`, shadowPath)
+    const isUrl = options.issue && String(options.issue).startsWith('http')
+    const issueRef = isUrl ? options.issue : `#${options.issue}`
+    const commitMsg = issueDetails
+      ? `Implemented feature for issue ${issueRef}: ${issueDetails.title}`
+      : `Implemented feature: ${finalIntent.substring(0, 50).replace(/\n/g, ' ')}...`
+    commitAll(commitMsg, shadowPath)
     console.log(pc.green('✅ Done! Your shadow branch is ready with the implemented feature.'))
 
     if (isNew) {
       console.log(pc.magenta('📤 Attempting to create a Pull Request...'))
-      createPullRequest(shadowBranchName, intent, shadowPath)
+      const prTitle = issueDetails ? issueDetails.title : finalIntent.substring(0, 50)
+      await createPullRequest(shadowBranchName, prTitle, shadowPath, options.issue)
     } else {
       console.log(pc.blue('🔗 Changes added to existing Pull Request/Branch. Pushing...'))
       execSync('git push', { stdio: 'inherit', cwd: shadowPath })
@@ -189,14 +228,16 @@ export async function reviewCommand(options = {}) {
     console.log(`  Auto-Approvable: ${approvableStr}`)
 
     console.log(pc.bold(pc.magenta('\n================================')))
-    
+
     if (options.id) {
       console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold(`flux merge --id ${options.id}`)}`))
     } else {
       console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold('flux merge --id <ID>')}`))
     }
   } catch (err) {
-    console.error(pc.red(`❌ Failed to obtain Semantic Review. Make sure GEMINI_API_KEY is set and valid. Error: ${err.message}`))
+    console.error(
+      pc.red(`❌ Failed to obtain Semantic Review. Make sure GEMINI_API_KEY is set and valid. Error: ${err.message}`),
+    )
   }
 }
 
@@ -206,8 +247,8 @@ export async function mergeCommand(options = {}) {
     process.exit(1)
   }
 
-  let branchToMerge;
-  let shadowPathToRemove = null;
+  let branchToMerge
+  let shadowPathToRemove = null
 
   if (options.id) {
     const worktreesDir = path.join(process.cwd(), 'worktrees')
@@ -227,7 +268,11 @@ export async function mergeCommand(options = {}) {
     branchToMerge = getCurrentBranch(process.cwd())
     const baseBranch = getBaseBranch(process.cwd())
     if (!branchToMerge || branchToMerge === baseBranch) {
-      console.error(pc.red('❌ Please provide the workspace ID using --id <id> or run this command from the branch you want to merge.'))
+      console.error(
+        pc.red(
+          '❌ Please provide the workspace ID using --id <id> or run this command from the branch you want to merge.',
+        ),
+      )
       process.exit(1)
     }
   }
@@ -237,7 +282,7 @@ export async function mergeCommand(options = {}) {
   if (shadowPathToRemove) {
     removeWorktree(shadowPathToRemove, process.cwd())
   }
-  
+
   mergePullRequest(branchToMerge, process.cwd())
   pullBase(process.cwd())
 }
@@ -291,7 +336,7 @@ export async function pushCommand(message, options = {}) {
     commitAll(message, shadowPath)
 
     console.log(pc.magenta('📤 Creating Pull Request...'))
-    createPullRequest(shadowBranchName, message, shadowPath)
+    await createPullRequest(shadowBranchName, message, shadowPath)
 
     console.log(pc.gray('Resetting main workspace to ensure clean state...'))
     execSync('git reset --hard HEAD', { cwd: process.cwd(), stdio: 'inherit' })

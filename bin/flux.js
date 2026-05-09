@@ -24,15 +24,17 @@ program.command('init').description('Initialize a new flux repository').action(i
 
 // Add top-level start command as a convenient alias
 program
-  .command('start <intent>')
+  .command('start [intent]')
   .description('Start a new shadow workspace for a specific intent (alias for shadow start)')
   .option('--id <id>', 'Unique ID of existing shadow workspace to continue applying changes to')
+  .option('--issue <issue>', 'GitHub Issue number to fetch details from and link to')
   .action((intent, options) => shadowStartCommand(intent, { ...program.opts(), ...options }))
 
 program
-  .command('run <intent>')
+  .command('run [intent]')
   .description('Run changes in a shadow workspace (optionally use --id to continue)')
   .option('--id <id>', 'Unique ID of existing shadow workspace to continue applying changes to')
+  .option('--issue <issue>', 'GitHub Issue number to fetch details from and link to')
   .action((intent, options) => shadowStartCommand(intent, { ...program.opts(), ...options }))
 
 program
