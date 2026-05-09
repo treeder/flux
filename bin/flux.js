@@ -2,13 +2,21 @@
 
 import { Command } from 'commander'
 import dotenv from 'dotenv'
-import { initCommand, shadowStartCommand, reviewCommand, mergeCommand, pushCommand, removeCommand } from '../src/commands.js'
+import {
+  initCommand,
+  shadowStartCommand,
+  reviewCommand,
+  mergeCommand,
+  pushCommand,
+  removeCommand,
+} from '../src/commands.js'
+import  packageJson from '../package.json' with { type: 'json' }
 
 dotenv.config()
 
 const program = new Command()
 
-program.name('flux').description('AI-Native Agentic Version Control System MVP').version('1.0.0')
+program.name('flux').description('AI-Native Agentic Version Control System MVP').version(packageJson.version)
 
 program.option('--id <id>', 'Unique ID of existing shadow workspace to continue applying changes to')
 
