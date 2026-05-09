@@ -146,9 +146,13 @@ export async function shadowStartCommand(intent, options = {}) {
   console.log(pc.magenta(`🤖 Executing ${aiToolName} CLI to implement the feature... (This may take a minute)`))
   try {
     const safePrompt = finalIntent.replace(/"/g, '\\"')
-    console.log(pc.gray(`> ${aiTool} -y -p "[intent]"`))
-    const { execFileSync } = await import('child_process')
-    execFileSync(aiTool, ['-y', '-p', finalIntent], { stdio: 'inherit', cwd: shadowPath })
+    const args = options.jules ? ['new', safePrompt] : ['-y', '-p', `"${safePrompt}"`]
+    let argsString = args.join(' ')
+    const argsDisplay = options.jules ? 'new "[intent]"' : '-y -p "[intent]"'
+
+    console.log(pc.gray(`> ${aiTool} ${argsDisplay}`))
+    execSync(`${aiTool} ${argsString}`, { stdio: 'inherit', cwd: shadowPath })
+    //     execSync(`gemini -y -p "${safePrompt}"`, { stdio: 'inherit', cwd: shadowPath })
 
     console.log(pc.blue('💾 Committing changes to the shadow branch...'))
     const isUrl = options.issue && String(options.issue).startsWith('http')
