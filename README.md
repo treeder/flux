@@ -6,8 +6,9 @@ AI-Native Agentic Version Control System MVP.
 
 - Node.js 22+
 - Git
-- Gemini CLI
-- gh (optional) for automatic pull request creation
+- [Gemini CLI](https://ai.google.com/gemini-api/docs/cli) for AI work
+- [GitHub CLI](https://cli.github.com/) (optional) for automatic pull request creation
+- [Jules CLI](https://jules.google/docs/cli/reference/) (optional) for offloading AI work for Jules to run remotely
 
 ## Installation
 
