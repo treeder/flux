@@ -1,6 +1,7 @@
 import { execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 import pc from 'picocolors'
 
 function run(cmd, cwd = process.cwd()) {
@@ -146,7 +147,18 @@ export async function createPullRequest(branchName, title, cwd = process.cwd(), 
       const issueRef = isUrl ? issueNumber : `#${issueNumber}`
       body += `\n\nCloses ${issueRef}`
     }
-    const prUrl = run(`gh pr create --title "${title.replace(/"/g, '\\"')}" --body "${body.replace(/"/g, '\\"')}"`, cwd)
+    
+    const tempBodyPath = path.join(os.tmpdir(), `flux-pr-body-${Date.now()}-${Math.floor(Math.random() * 1000)}.txt`)
+    fs.writeFileSync(tempBodyPath, body, 'utf8')
+    
+    let prUrl
+    try {
+      // Use -F to supply body from a file, perfectly preserving newlines and avoiding escaping issues
+      prUrl = run(`gh pr create --title "${title.replace(/"/g, '\\"')}" -F "${tempBodyPath}"`, cwd)
+    } finally {
+      if (fs.existsSync(tempBodyPath)) fs.unlinkSync(tempBodyPath)
+    }
+
     console.log(pc.green('✅ Successfully created PR!'))
     if (prUrl) {
       console.log(pc.cyan(`🔗 PR Link: ${pc.underline(prUrl)}`))

@@ -33,6 +33,9 @@ Start a new shadow workspace for a specific intent. This creates an isolated sha
 
 ```bash
 flux start "add user authentication"
+
+# to pull a github issue and implement it
+flux start --issue https://github.com/treeder/flux/issues/123
 ```
 
 ### `flux run <intent>`
