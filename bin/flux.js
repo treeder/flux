@@ -19,6 +19,7 @@ const program = new Command()
 program.name('flux').description('AI-Native Agentic Version Control System MVP').version(packageJson.version)
 
 program.option('--id <id>', 'Unique ID of existing shadow workspace to continue applying changes to')
+program.option('--jules', 'Use jules instead of gemini for implementation')
 
 program.command('init').description('Initialize a new flux repository').action(initCommand)
 
