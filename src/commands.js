@@ -19,6 +19,7 @@ import {
   getBaseBranch,
 } from './git.js'
 import { generateSemanticReview } from './ai.js'
+import { jules } from '@google/jules-sdk'
 
 function ensureGitignore() {
   const gitignorePath = path.join(process.cwd(), '.gitignore')
@@ -93,14 +94,31 @@ export async function shadowStartCommand(intent, options = {}) {
   }
 
   if (options.jules) {
-    console.log(pc.magenta(`🤖 Executing Jules CLI to implement the feature... (This may take a minute)`))
+    console.log(pc.magenta(`🤖 Executing Jules SDK to implement the feature... (This may take a minute)`))
     try {
-      const safePrompt = finalIntent.replace(/"/g, '\\"')
-      console.log(pc.gray(`> jules new "[intent]"`))
-      execSync(`jules new "${safePrompt}"`, { stdio: 'inherit', cwd: process.cwd() })
+      console.log(pc.gray(`> jules.run({ prompt: "[intent]" })`))
+
+      const runner = await jules.run({
+        prompt: finalIntent,
+        autoPr: false
+      })
+
+      console.log(pc.cyan(`Session started with ID: ${runner.id}`))
+
+      for await (const activity of runner.stream()) {
+        if (activity.activityType === 'STEP') {
+          console.log(pc.gray(`  - ${activity.step.message || 'Processing...'}`))
+        }
+      }
+
+      const outcome = await runner.result()
+      if (outcome.status === 'ERROR') {
+        throw new Error(outcome.error?.message || 'Unknown error')
+      }
+
       console.log(pc.green('✅ Done! Jules is working on your request remotely.'))
     } catch (error) {
-      console.error(pc.red(`❌ Failed to implement feature using Jules CLI: ${error.message}`))
+      console.error(pc.red(`❌ Failed to implement feature using Jules SDK: ${error.message}`))
     }
     return
   }
