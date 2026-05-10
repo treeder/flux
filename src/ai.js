@@ -6,14 +6,59 @@ import readline from 'readline/promises'
 
 let genAI
 
+function loadConfig() {
+  const oldFluxFile = path.join(os.homedir(), '.flux')
+  const oldJulesFile = path.join(os.homedir(), '.flux_jules')
+  const fluxDir = path.join(os.homedir(), '.flux')
+  const fluxFile = path.join(fluxDir, 'flux.json')
+
+  let config = {}
+  let migrated = false
+
+  if (fs.existsSync(oldFluxFile) && fs.statSync(oldFluxFile).isFile()) {
+    config.GEMINI_API_KEY = fs.readFileSync(oldFluxFile, 'utf8').trim()
+    fs.unlinkSync(oldFluxFile)
+    migrated = true
+  }
+
+  if (fs.existsSync(oldJulesFile) && fs.statSync(oldJulesFile).isFile()) {
+    config.JULES_API_KEY = fs.readFileSync(oldJulesFile, 'utf8').trim()
+    fs.unlinkSync(oldJulesFile)
+    migrated = true
+  }
+
+  if (fs.existsSync(fluxFile)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(fluxFile, 'utf8'))
+      config = { ...parsed, ...config }
+    } catch (e) {}
+  }
+
+  if (migrated) {
+    saveConfig(config)
+  }
+
+  return config
+}
+
+function saveConfig(config) {
+  const fluxDir = path.join(os.homedir(), '.flux')
+  const fluxFile = path.join(fluxDir, 'flux.json')
+  if (!fs.existsSync(fluxDir)) {
+    fs.mkdirSync(fluxDir, { recursive: true })
+  }
+  fs.writeFileSync(fluxFile, JSON.stringify(config, null, 2))
+}
+
 async function getAI() {
   if (!genAI) {
     let apiKey = process.env.GEMINI_API_KEY
-    const fluxFile = path.join(os.homedir(), '.flux')
+    if (!apiKey) {
+      const config = loadConfig()
 
-    if (!apiKey && fs.existsSync(fluxFile)) {
-      apiKey = fs.readFileSync(fluxFile, 'utf8').trim()
-    }
+      if (config.GEMINI_API_KEY) {
+        apiKey = config.GEMINI_API_KEY
+      }
 
     if (!apiKey) {
       const rl = readline.createInterface({
@@ -28,8 +73,10 @@ async function getAI() {
         process.exit(1)
       }
 
-      fs.writeFileSync(fluxFile, apiKey.trim())
-      console.log(`Saved API Key to ${fluxFile}`)
+      apiKey = apiKey.trim()
+      config.GEMINI_API_KEY = apiKey
+      saveConfig(config)
+      console.log(`Saved API Key to ~/.flux/flux.json`)
     }
 
     apiKey = apiKey.trim()
@@ -86,4 +133,41 @@ ${diffText}
     console.error('AI Generation failed:', error.message)
     throw error
   }
+}
+
+export async function getJulesApiKey() {
+  let apiKey = process.env.JULES_API_KEY
+  if (apiKey) {
+    return apiKey
+  }
+
+  const config = loadConfig()
+
+  if (config.JULES_API_KEY) {
+    apiKey = config.JULES_API_KEY
+  }
+
+  if (!apiKey) {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    })
+    apiKey = await rl.question('Please enter your Jules API Key: ')
+    rl.close()
+
+    if (!apiKey || !apiKey.trim()) {
+      console.error('Error: Jules API Key is required.')
+      process.exit(1)
+    }
+
+    apiKey = apiKey.trim()
+    config.JULES_API_KEY = apiKey
+    saveConfig(config)
+    console.log(`Saved Jules API Key to ~/.flux/flux.json`)
+  }
+
+  apiKey = apiKey.trim()
+  process.env.JULES_API_KEY = apiKey
+  console.log(`Using Jules API Key: ${apiKey}`)
+  return apiKey
 }
