@@ -2,11 +2,11 @@ name: Bump version
 
 on:
   push:
-    branches: 
+    branches:
       - main
 
 jobs:
-  bump:    
+  bump:
     runs-on: ubuntu-latest
     permissions:
       contents: write

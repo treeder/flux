@@ -60,29 +60,30 @@ async function getAI() {
         apiKey = config.GEMINI_API_KEY
       }
 
-    if (!apiKey) {
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-      })
-      apiKey = await rl.question('Please enter your Gemini API Key: ')
-      rl.close()
+      if (!apiKey) {
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+        })
+        apiKey = await rl.question('Please enter your Gemini API Key: ')
+        rl.close()
 
-      if (!apiKey || !apiKey.trim()) {
-        console.error('Error: Gemini API Key is required.')
-        process.exit(1)
+        if (!apiKey || !apiKey.trim()) {
+          console.error('Error: Gemini API Key is required.')
+          process.exit(1)
+        }
+
+        apiKey = apiKey.trim()
+        config.GEMINI_API_KEY = apiKey
+        saveConfig(config)
+        console.log(`Saved API Key to ~/.flux/flux.json`)
       }
-
-      apiKey = apiKey.trim()
-      config.GEMINI_API_KEY = apiKey
-      saveConfig(config)
-      console.log(`Saved API Key to ~/.flux/flux.json`)
     }
 
     apiKey = apiKey.trim()
     console.log(`Using Gemini API Key: ${apiKey}`)
 
-    genAI = new GoogleGenAI({apiKey})
+    genAI = new GoogleGenAI({ apiKey })
   }
   return genAI
 }

@@ -2,15 +2,9 @@
 
 import { Command } from 'commander'
 import dotenv from 'dotenv'
-import {
-  initCommand,
-  reviewCommand,
-  mergeCommand,
-  pushCommand,
-  removeCommand,
-} from '../src/commands.js'
+import { initCommand, reviewCommand, mergeCommand, pushCommand, removeCommand } from '../src/commands.js'
 import { shadowStartCommand } from '../src/commands/start.js'
-import  packageJson from '../package.json' with { type: 'json' }
+import packageJson from '../package.json' with { type: 'json' }
 
 dotenv.config()
 

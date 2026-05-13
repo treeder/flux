@@ -147,10 +147,10 @@ export async function createPullRequest(branchName, title, cwd = process.cwd(), 
       const issueRef = isUrl ? issueNumber : `#${issueNumber}`
       body += `\n\nCloses ${issueRef}`
     }
-    
+
     const tempBodyPath = path.join(os.tmpdir(), `flux-pr-body-${Date.now()}-${Math.floor(Math.random() * 1000)}.txt`)
     fs.writeFileSync(tempBodyPath, body, 'utf8')
-    
+
     let prUrl
     try {
       // Use -F to supply body from a file, perfectly preserving newlines and avoiding escaping issues
