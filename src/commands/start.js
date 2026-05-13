@@ -3,12 +3,7 @@ import path from 'path'
 import { execSync } from 'child_process'
 import crypto from 'crypto'
 import pc from 'picocolors'
-import {
-  isGitInitialized,
-  createShadowWorktree,
-  commitAll,
-  createPullRequest
-} from '../git.js'
+import { isGitInitialized, createShadowWorktree, commitAll, createPullRequest } from '../git.js'
 import { ensureGitignore } from '../commands.js'
 import { jules } from '@google/jules-sdk'
 import { getJulesApiKey } from '../ai.js'
