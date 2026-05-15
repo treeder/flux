@@ -4,7 +4,7 @@ import { execSync } from 'child_process'
 import crypto from 'crypto'
 import pc from 'picocolors'
 import { isGitInitialized, createShadowWorktree, commitAll, createPullRequest } from '../git.js'
-import { ensureGitignore } from '../commands.js'
+import { ensureGitignore, recordShadow } from '../commands.js'
 import { jules } from '@google/jules-sdk'
 import { getJulesApiKey } from '../ai.js'
 
@@ -145,7 +145,8 @@ export async function shadowStartCommand(intent, options = {}) {
     if (isNew) {
       console.log(pc.magenta('📤 Attempting to create a Pull Request...'))
       const prTitle = issueDetails ? issueDetails.title : finalIntent.substring(0, 50)
-      await createPullRequest(shadowBranchName, prTitle, shadowPath, options.issue)
+      const prUrl = await createPullRequest(shadowBranchName, prTitle, shadowPath, options.issue)
+      recordShadow(uniqueId, { branch: shadowBranchName, prUrl })
     } else {
       console.log(pc.blue('🔗 Changes added to existing Pull Request/Branch. Pushing...'))
       execSync('git push', { stdio: 'inherit', cwd: shadowPath })
