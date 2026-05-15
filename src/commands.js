@@ -227,8 +227,18 @@ export async function pushCommand(message, options = {}) {
     console.log(pc.gray('Resetting main workspace to ensure clean state...'))
     execSync('git reset --hard HEAD', { cwd: process.cwd(), stdio: 'inherit' })
 
+    console.log(pc.gray('🧹 Cleaning up shadow worktree...'))
+    removeWorktree(shadowPath, process.cwd())
+
+    try {
+      execSync(`git branch -D ${shadowBranchName}`, { cwd: process.cwd(), stdio: 'ignore' })
+      console.log(pc.gray(`🧹 Deleted branch ${shadowBranchName}`))
+    } catch (e) {
+      // Ignore error if branch deletion fails
+    }
+
     console.log(pc.green('✅ Done! Changes pushed and PR created.'))
-    console.log(pc.yellow(`💡 To review or continue working, use the ID: ${pc.bold(uniqueId)}`))
+    console.log(pc.yellow(`💡 To merge these changes, run: flux merge --id ${pc.bold(uniqueId)}`))
   } catch (error) {
     console.error(pc.red('❌ Failed to push changes.'), error)
   }
