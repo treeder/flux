@@ -163,6 +163,14 @@ export async function createPullRequest(branchName, title, cwd = process.cwd(), 
     if (prUrl) {
       console.log(pc.cyan(`🔗 PR Link: ${pc.underline(prUrl)}`))
     }
+
+    try {
+      console.log(pc.magenta(`🔄 Attempting to enable auto-merge for branch ${branchName}...`))
+      run('gh pr merge "' + branchName + '" --auto --squash --delete-branch', cwd)
+      console.log(pc.green('✅ Successfully enabled auto-merge!'))
+    } catch (e) {
+      console.log(pc.yellow('⚠️ Note: Could not automatically enable auto-merge. Ensure the repository allows it.'))
+    }
   } catch (e) {
     console.log(
       pc.yellow(
