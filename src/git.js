@@ -134,7 +134,7 @@ export async function createPullRequest(branchName, title, cwd = process.cwd(), 
         const prUrl = JSON.parse(existingPrs)[0].url
         console.log(pc.blue(`ℹ️ A Pull Request already exists for branch '${branchName}'. Skipping creation.`))
         console.log(pc.cyan(`🔗 PR Link: ${pc.underline(prUrl)}`))
-        return
+        return prUrl
       }
     } catch (e) {
       // Ignore and proceed to create if list fails
@@ -171,6 +171,8 @@ export async function createPullRequest(branchName, title, cwd = process.cwd(), 
     } catch (e) {
       console.log(pc.yellow('⚠️ Note: Could not automatically enable auto-merge. Ensure the repository allows it.'))
     }
+
+    return prUrl
   } catch (e) {
     console.log(
       pc.yellow(

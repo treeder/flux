@@ -21,6 +21,39 @@ import {
 import { generateSemanticReview } from './ai.js'
 import { jules } from '@google/jules-sdk'
 
+export function loadFluxConfig() {
+  const configPath = path.join(process.cwd(), '.flux', 'config.json')
+  if (fs.existsSync(configPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    } catch (e) {
+      // Ignore parse error
+    }
+  }
+  return { version: '1.0.0', shadows: [] }
+}
+
+export function saveFluxConfig(config) {
+  const fluxDir = path.join(process.cwd(), '.flux')
+  if (!fs.existsSync(fluxDir)) {
+    fs.mkdirSync(fluxDir, { recursive: true })
+  }
+  const configPath = path.join(fluxDir, 'config.json')
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+}
+
+export function recordShadow(id, data) {
+  const config = loadFluxConfig()
+  config.shadows = config.shadows || []
+  const existingIndex = config.shadows.findIndex((s) => s.id === id)
+  if (existingIndex >= 0) {
+    config.shadows[existingIndex] = { ...config.shadows[existingIndex], ...data }
+  } else {
+    config.shadows.push({ id, ...data })
+  }
+  saveFluxConfig(config)
+}
+
 export function ensureGitignore() {
   const gitignorePath = path.join(process.cwd(), '.gitignore')
   let content = ''
@@ -28,8 +61,15 @@ export function ensureGitignore() {
     content = fs.readFileSync(gitignorePath, 'utf8')
   }
   const lines = content.split(/\r?\n/).map((l) => l.trim())
+  let toAppend = ''
   if (!lines.includes('worktrees/')) {
-    fs.appendFileSync(gitignorePath, (content && !content.endsWith('\n') ? '\n' : '') + 'worktrees/\n')
+    toAppend += 'worktrees/\n'
+  }
+  if (!lines.includes('.flux/')) {
+    toAppend += '.flux/\n'
+  }
+  if (toAppend) {
+    fs.appendFileSync(gitignorePath, (content && !content.endsWith('\n') ? '\n' : '') + toAppend)
   }
 }
 
@@ -144,12 +184,18 @@ export async function mergeCommand(options = {}) {
       shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
     }
     if (!shadowDirName) {
-      console.error(pc.red(`❌ Could not find existing worktree for id: ${options.id}`))
-      return
+      const config = loadFluxConfig()
+      const shadowInfo = config.shadows?.find((s) => s.id === options.id)
+      if (shadowInfo && shadowInfo.branch) {
+        branchToMerge = shadowInfo.branch
+      } else {
+        console.error(pc.red(`❌ Could not find existing worktree or configuration for id: ${options.id}`))
+        return
+      }
+    } else {
+      branchToMerge = `flux/${shadowDirName}`
+      shadowPathToRemove = path.join(process.cwd(), 'worktrees', shadowDirName)
     }
-
-    branchToMerge = `flux/${shadowDirName}`
-    shadowPathToRemove = path.join(process.cwd(), 'worktrees', shadowDirName)
   } else {
     branchToMerge = getCurrentBranch(process.cwd())
     const baseBranch = getBaseBranch(process.cwd())
@@ -222,7 +268,8 @@ export async function pushCommand(message, options = {}) {
     commitAll(message, shadowPath)
 
     console.log(pc.magenta('📤 Creating Pull Request...'))
-    await createPullRequest(shadowBranchName, message, shadowPath)
+    const prUrl = await createPullRequest(shadowBranchName, message, shadowPath)
+    recordShadow(uniqueId, { branch: shadowBranchName, prUrl })
 
     console.log(pc.gray('Resetting main workspace to ensure clean state...'))
     execSync('git reset --hard HEAD', { cwd: process.cwd(), stdio: 'inherit' })
