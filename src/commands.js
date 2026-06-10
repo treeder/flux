@@ -97,44 +97,78 @@ export function initCommand() {
   console.log(pc.cyan('🚀 Ready to trace impacts and shadow intents!'))
 }
 
-export async function reviewCommand(options = {}) {
-  if (!isGitInitialized()) {
-    console.error(pc.red('❌ Git is not initialized. Run "flux init" first.'))
-    process.exit(1)
+export async function reviewCommand(prUrlOrNumber, options = {}) {
+  // Handle case where options was passed as first parameter
+  if (typeof prUrlOrNumber === 'object' && prUrlOrNumber !== null && Object.keys(options).length === 0) {
+    options = prUrlOrNumber
+    prUrlOrNumber = undefined
   }
 
-  let reviewPath = process.cwd()
+  let currentDiff = ''
+  let prDetails = null
 
-  if (options.id) {
-    const worktreesDir = path.join(process.cwd(), 'worktrees')
-    let shadowDirName
-    if (fs.existsSync(worktreesDir)) {
-      const dirs = fs.readdirSync(worktreesDir)
-      shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
+  if (prUrlOrNumber) {
+    console.log(pc.cyan(`🔍 Fetching Pull Request details and diff for: ${pc.bold(prUrlOrNumber)}...`))
+    try {
+      const detailsJson = execSync(`gh pr view ${prUrlOrNumber} --json title,body`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+      })
+      prDetails = JSON.parse(detailsJson)
+      currentDiff = execSync(`gh pr diff ${prUrlOrNumber}`, { encoding: 'utf-8', stdio: 'pipe' })
+    } catch (err) {
+      console.error(
+        pc.red(
+          `❌ Failed to fetch Pull Request details or diff. Ensure that gh CLI is installed, authenticated, and the URL/number is valid. Error: ${err.message}`,
+        ),
+      )
+      process.exit(1)
     }
-    if (!shadowDirName) {
-      console.error(pc.red(`❌ Could not find existing worktree for id: ${options.id}`))
+
+    if (!currentDiff) {
+      console.log(pc.yellow('⚠️ No changes detected in this Pull Request.'))
       return
     }
-    reviewPath = path.join(process.cwd(), 'worktrees', shadowDirName)
-    console.log(pc.cyan(`🔍 Reviewing existing shadow workspace: ${pc.bold(shadowDirName)}`))
   } else {
-    console.log(pc.cyan('🔍 Checking current workspace changes...'))
+    if (!isGitInitialized()) {
+      console.error(pc.red('❌ Git is not initialized. Run "flux init" first.'))
+      process.exit(1)
+    }
+
+    let reviewPath = process.cwd()
+
+    if (options.id) {
+      const worktreesDir = path.join(process.cwd(), 'worktrees')
+      let shadowDirName
+      if (fs.existsSync(worktreesDir)) {
+        const dirs = fs.readdirSync(worktreesDir)
+        shadowDirName = dirs.find((d) => d.startsWith(options.id + '-'))
+      }
+      if (!shadowDirName) {
+        console.error(pc.red(`❌ Could not find existing worktree for id: ${options.id}`))
+        return
+      }
+      reviewPath = path.join(process.cwd(), 'worktrees', shadowDirName)
+      console.log(pc.cyan(`🔍 Reviewing existing shadow workspace: ${pc.bold(shadowDirName)}`))
+    } else {
+      console.log(pc.cyan('🔍 Checking current workspace changes...'))
+    }
+
+    currentDiff = getDiff(reviewPath)
+    const currentStatus = status(reviewPath)
+
+    if (!currentDiff && !currentStatus) {
+      console.log(pc.yellow('⚠️ No changes detected in the workspace.'))
+      return
+    }
+
+    console.log(pc.gray(`Raw Changes:\n${currentStatus}`))
   }
 
-  const currentDiff = getDiff(reviewPath)
-  const currentStatus = status(reviewPath)
-
-  if (!currentDiff && !currentStatus) {
-    console.log(pc.yellow('⚠️ No changes detected in the workspace.'))
-    return
-  }
-
-  console.log(pc.gray(`Raw Changes:\n${currentStatus}`))
   console.log(pc.magenta('🧠 Requesting Semantic Intent Review from AI Engine...'))
 
   try {
-    const reviewData = await generateSemanticReview(currentDiff)
+    const reviewData = await generateSemanticReview(currentDiff, prDetails)
 
     console.log(pc.bold(pc.magenta('\n================================')))
     console.log(pc.bold(pc.magenta('   ✨ SEMANTIC INTENT REVIEW ✨   ')))
@@ -155,10 +189,12 @@ export async function reviewCommand(options = {}) {
 
     console.log(pc.bold(pc.magenta('\n================================')))
 
-    if (options.id) {
-      console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold(`flux merge --id ${options.id}`)}`))
-    } else {
-      console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold('flux merge --id <ID>')}`))
+    if (!prUrlOrNumber) {
+      if (options.id) {
+        console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold(`flux merge --id ${options.id}`)}`))
+      } else {
+        console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold('flux merge --id <ID>')}`))
+      }
     }
   } catch (err) {
     console.error(
@@ -328,4 +364,42 @@ export async function removeCommand(options = {}) {
   }
 
   console.log(pc.green('✅ Workspace removed successfully!'))
+}
+
+export async function cleanCommand() {
+  if (!isGitInitialized()) {
+    console.error(pc.red('❌ Git is not initialized. Run "flux init" first.'))
+    process.exit(1)
+  }
+
+  const worktreesDir = path.join(process.cwd(), 'worktrees')
+  if (!fs.existsSync(worktreesDir)) {
+    console.log(pc.yellow('⚠️ No worktrees directory found. Nothing to clean.'))
+    return
+  }
+
+  const dirs = fs.readdirSync(worktreesDir)
+  if (dirs.length === 0) {
+    console.log(pc.yellow('⚠️ No worktrees found. Nothing to clean.'))
+    return
+  }
+
+  console.log(pc.cyan(`🗑️  Cleaning up all shadow workspaces...`))
+
+  for (const shadowDirName of dirs) {
+    const shadowPath = path.join(worktreesDir, shadowDirName)
+    const shadowBranchName = `flux/${shadowDirName}`
+
+    console.log(pc.gray(`\nProcessing: ${shadowDirName}`))
+    removeWorktree(shadowPath, process.cwd())
+
+    try {
+      execSync(`git branch -D ${shadowBranchName}`, { cwd: process.cwd(), stdio: 'ignore' })
+      console.log(pc.gray(`🧹 Deleted branch ${shadowBranchName}`))
+    } catch (e) {
+      // Ignore error if branch deletion fails
+    }
+  }
+
+  console.log(pc.green('\n✅ All workspaces cleaned successfully!'))
 }

@@ -88,14 +88,23 @@ async function getAI() {
   return genAI
 }
 
-export async function generateSemanticReview(diffText) {
+export async function generateSemanticReview(diffText, prDetails = null) {
   const ai = await getAI()
   // We use gemini-2.5-flash as default, or whatever fast model is suitable.
   // We can use gemini-1.5-pro for better analysis if needed.
 
+  let prContext = ''
+  if (prDetails) {
+    prContext = `
+The user has provided the following Pull Request context:
+Title: ${prDetails.title}
+Description: ${prDetails.body}
+`
+  }
+
   const prompt = `
 You are the AI core of an Agentic Version Control System. 
-The user has made the following code modifications (provided as a git diff).
+The user has made the following code modifications (provided as a git diff).${prContext}
 Analyze the changes to determine the high-level semantic "Intent" of these changes, and score the Complexity and Confidence.
 
 {

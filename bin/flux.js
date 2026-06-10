@@ -2,7 +2,14 @@
 
 import { Command } from 'commander'
 import dotenv from 'dotenv'
-import { initCommand, reviewCommand, mergeCommand, pushCommand, removeCommand } from '../src/commands.js'
+import {
+  initCommand,
+  reviewCommand,
+  mergeCommand,
+  pushCommand,
+  removeCommand,
+  cleanCommand,
+} from '../src/commands.js'
 import { shadowStartCommand } from '../src/commands/start.js'
 import packageJson from '../package.json' with { type: 'json' }
 
@@ -34,10 +41,10 @@ program
   .action((intent, options) => shadowStartCommand(intent, { ...program.opts(), ...options }))
 
 program
-  .command('review')
-  .description('Generate Semantic Intent Review and Confidence Score via AI for the current changes')
+  .command('review [prUrl]')
+  .description('Generate Semantic Intent Review and Confidence Score via AI for the current changes or a Pull Request')
   .option('--id <id>', 'Unique ID of existing shadow workspace to review')
-  .action((options) => reviewCommand({ ...program.opts(), ...options }))
+  .action((prUrl, options) => reviewCommand(prUrl, { ...program.opts(), ...options }))
 
 program
   .command('merge')
@@ -57,5 +64,10 @@ program
   .description('Remove a shadow workspace (worktree) by ID')
   .requiredOption('--id <id>', 'Unique ID of existing shadow workspace to remove')
   .action((options) => removeCommand({ ...program.opts(), ...options }))
+
+program
+  .command('clean')
+  .description('Clean up and remove all shadow workspaces (worktrees)')
+  .action(() => cleanCommand())
 
 program.parse(process.argv)
