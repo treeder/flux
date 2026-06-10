@@ -81,7 +81,6 @@ async function getAI() {
     }
 
     apiKey = apiKey.trim()
-    console.log(`Using Gemini API Key: ${apiKey}`)
 
     genAI = new GoogleGenAI({ apiKey })
   }
