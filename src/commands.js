@@ -173,9 +173,7 @@ export async function reviewCommand(prUrlOrNumber, options = {}) {
     const reviewData = await generateSemanticReview(currentDiff, prDetails)
 
     if (options.github) {
-      const approvableStr = reviewData.autoApprovable
-        ? 'YES'
-        : 'NO (Requires Human Verification)'
+      const approvableStr = reviewData.autoApprovable ? 'YES' : 'NO (Requires Human Verification)'
       const markdown = `# ✨ SEMANTIC INTENT REVIEW ✨
 
 ## 🎯 Intent

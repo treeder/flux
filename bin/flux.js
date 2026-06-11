@@ -6,7 +6,7 @@ import { initCommand, reviewCommand, mergeCommand, pushCommand, removeCommand, c
 import { shadowStartCommand } from '../src/commands/start.js'
 import packageJson from '../package.json' with { type: 'json' }
 
-dotenv.config()
+dotenv.config({ quiet: true })
 
 const program = new Command()
 
