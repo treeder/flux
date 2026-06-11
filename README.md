@@ -65,6 +65,21 @@ flux review --github
 flux review <PR_URL> --github
 ```
 
+#### GitHub Action Integration
+
+You can integrate Flux into your GitHub repositories to get automated risk scoring and reviews posted directly onto your Pull Requests.
+
+See the [.github/workflows/flux-review.yml](.github/workflows/flux-review.yml) file for the complete workflow definition.
+
+**Setup Instructions:**
+
+1. Create a workflow file in your repository at `.github/workflows/flux-review.yml` using the template.
+2. Add `GEMINI_API_KEY` to your repository secrets. This is the only secret required.
+
+Here is an example of what Flux will output in your pull request comment:
+
+![Flux Review Scores](docs/scores.png)
+
 ### `flux merge`
 
 Merge the pull request for a specific shadow workspace then pull the changes into your base branch.
