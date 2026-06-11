@@ -49,14 +49,20 @@ flux run --id <ID> "refactor the new login page"
 
 ### `flux review`
 
-Generate a Semantic Intent Review and Confidence Score via AI for the current changes. You can provide an `--id` to review a specific shadow workspace.
+Generate a Semantic Intent Review and Confidence Score via AI for the current changes or a Pull Request. You can provide an `--id` to review a specific shadow workspace.
 
 The scores are for complexity and confidence helping you decide if a human needs to review it or not.
+
+You can also use the `--github` flag to output a clean Markdown format suitable for posting as a Pull Request comment in a GitHub Action. When `--github` is set, all progress messages are routed to `stderr` so that `stdout` contains only the review markdown.
 
 ```bash
 flux review
 # or to review a specific workspace
 flux review --id <ID>
+# or to generate a GitHub Action-friendly Markdown response
+flux review --github
+# or to review a specific Pull Request URL/number and output Markdown
+flux review <PR_URL> --github
 ```
 
 ### `flux merge`

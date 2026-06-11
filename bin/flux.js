@@ -37,6 +37,7 @@ program
   .command('review [prUrl]')
   .description('Generate Semantic Intent Review and Confidence Score via AI for the current changes or a Pull Request')
   .option('--id <id>', 'Unique ID of existing shadow workspace to review')
+  .option('--github', 'Generate a GitHub Action-friendly Markdown response')
   .action((prUrl, options) => reviewCommand(prUrl, { ...program.opts(), ...options }))
 
 program

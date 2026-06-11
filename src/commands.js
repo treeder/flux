@@ -104,11 +104,13 @@ export async function reviewCommand(prUrlOrNumber, options = {}) {
     prUrlOrNumber = undefined
   }
 
+  const log = options.github ? console.error : console.log
+
   let currentDiff = ''
   let prDetails = null
 
   if (prUrlOrNumber) {
-    console.log(pc.cyan(`🔍 Fetching Pull Request details and diff for: ${pc.bold(prUrlOrNumber)}...`))
+    log(pc.cyan(`🔍 Fetching Pull Request details and diff for: ${pc.bold(prUrlOrNumber)}...`))
     try {
       const detailsJson = execSync(`gh pr view ${prUrlOrNumber} --json title,body`, {
         encoding: 'utf-8',
@@ -126,7 +128,7 @@ export async function reviewCommand(prUrlOrNumber, options = {}) {
     }
 
     if (!currentDiff) {
-      console.log(pc.yellow('⚠️ No changes detected in this Pull Request.'))
+      log(pc.yellow('⚠️ No changes detected in this Pull Request.'))
       return
     }
   } else {
@@ -149,51 +151,71 @@ export async function reviewCommand(prUrlOrNumber, options = {}) {
         return
       }
       reviewPath = path.join(process.cwd(), 'worktrees', shadowDirName)
-      console.log(pc.cyan(`🔍 Reviewing existing shadow workspace: ${pc.bold(shadowDirName)}`))
+      log(pc.cyan(`🔍 Reviewing existing shadow workspace: ${pc.bold(shadowDirName)}`))
     } else {
-      console.log(pc.cyan('🔍 Checking current workspace changes...'))
+      log(pc.cyan('🔍 Checking current workspace changes...'))
     }
 
     currentDiff = getDiff(reviewPath)
     const currentStatus = status(reviewPath)
 
     if (!currentDiff && !currentStatus) {
-      console.log(pc.yellow('⚠️ No changes detected in the workspace.'))
+      log(pc.yellow('⚠️ No changes detected in the workspace.'))
       return
     }
 
-    console.log(pc.gray(`Raw Changes:\n${currentStatus}`))
+    log(pc.gray(`Raw Changes:\n${currentStatus}`))
   }
 
-  console.log(pc.magenta('🧠 Requesting Semantic Intent Review from AI Engine...'))
+  log(pc.magenta('🧠 Requesting Semantic Intent Review from AI Engine...'))
 
   try {
     const reviewData = await generateSemanticReview(currentDiff, prDetails)
 
-    console.log(pc.bold(pc.magenta('\n================================')))
-    console.log(pc.bold(pc.magenta('   ✨ SEMANTIC INTENT REVIEW ✨   ')))
-    console.log(pc.bold(pc.magenta('================================\n')))
+    if (options.github) {
+      const approvableStr = reviewData.autoApprovable
+        ? 'YES'
+        : 'NO (Requires Human Verification)'
+      const markdown = `# ✨ SEMANTIC INTENT REVIEW ✨
 
-    console.log(`${pc.bold(pc.green('🎯 Intent:'))} ${reviewData.intent}`)
-    console.log(`\n${pc.bold(pc.cyan('📝 Details:'))}`)
-    reviewData.details.forEach((d) => console.log(`  ${pc.gray('-')} ${d}`))
+## 🎯 Intent
+${reviewData.intent}
 
-    console.log(`\n${pc.bold(pc.yellow('📈 Scores:'))}`)
-    console.log(`  Complexity: ${pc.cyan(reviewData.complexityScore)}/100`)
-    console.log(`  Confidence: ${pc.cyan(reviewData.confidenceScore)}/100`)
+## 📝 Details
+${reviewData.details.map((d) => `- ${d}`).join('\n')}
 
-    const approvableStr = reviewData.autoApprovable
-      ? pc.green(pc.bold('YES'))
-      : pc.red(pc.bold('NO (Requires Human Verification)'))
-    console.log(`  Auto-Approvable: ${approvableStr}`)
+## 📈 Scores
+- **Complexity**: ${reviewData.complexityScore}/100
+- **Confidence**: ${reviewData.confidenceScore}/100
+- **Auto-Approvable**: ${approvableStr}`
 
-    console.log(pc.bold(pc.magenta('\n================================')))
+      console.log(markdown)
+    } else {
+      console.log(pc.bold(pc.magenta('\n================================')))
+      console.log(pc.bold(pc.magenta('   ✨ SEMANTIC INTENT REVIEW ✨   ')))
+      console.log(pc.bold(pc.magenta('================================\n')))
 
-    if (!prUrlOrNumber) {
-      if (options.id) {
-        console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold(`flux merge --id ${options.id}`)}`))
-      } else {
-        console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold('flux merge --id <ID>')}`))
+      console.log(`${pc.bold(pc.green('🎯 Intent:'))} ${reviewData.intent}`)
+      console.log(`\n${pc.bold(pc.cyan('📝 Details:'))}`)
+      reviewData.details.forEach((d) => console.log(`  ${pc.gray('-')} ${d}`))
+
+      console.log(`\n${pc.bold(pc.yellow('📈 Scores:'))}`)
+      console.log(`  Complexity: ${pc.cyan(reviewData.complexityScore)}/100`)
+      console.log(`  Confidence: ${pc.cyan(reviewData.confidenceScore)}/100`)
+
+      const approvableStr = reviewData.autoApprovable
+        ? pc.green(pc.bold('YES'))
+        : pc.red(pc.bold('NO (Requires Human Verification)'))
+      console.log(`  Auto-Approvable: ${approvableStr}`)
+
+      console.log(pc.bold(pc.magenta('\n================================')))
+
+      if (!prUrlOrNumber) {
+        if (options.id) {
+          console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold(`flux merge --id ${options.id}`)}`))
+        } else {
+          console.log(pc.yellow(`💡 To merge these changes, run: ${pc.bold('flux merge --id <ID>')}`))
+        }
       }
     }
   } catch (err) {
