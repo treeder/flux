@@ -61,6 +61,11 @@ async function getAI() {
       }
 
       if (!apiKey) {
+        if (process.argv.includes('--github') || process.env.GITHUB_ACTIONS === 'true') {
+          console.log('Please setup GEMINI_API_KEY in this repos settings -> secrets -> actions.')
+          process.exit(0)
+        }
+
         const rl = readline.createInterface({
           input: process.stdin,
           output: process.stdout,
@@ -157,6 +162,11 @@ export async function getJulesApiKey() {
   }
 
   if (!apiKey) {
+    if (process.argv.includes('--github') || process.env.GITHUB_ACTIONS === 'true') {
+      console.log('Please setup JULES_API_KEY in this repos settings -> secrets -> actions.')
+      process.exit(0)
+    }
+
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
