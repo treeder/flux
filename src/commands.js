@@ -185,7 +185,10 @@ ${reviewData.details.map((d) => `- ${d}`).join('\n')}
 ## 📈 Scores
 - **Complexity**: ${reviewData.complexityScore}/100
 - **Confidence**: ${reviewData.confidenceScore}/100
-- **Auto-Approvable**: ${approvableStr}`
+- **Auto-Approvable**: ${approvableStr}
+
+---
+_Powered by [flux](https://github.com/treeder/flux)_`
 
       console.log(markdown)
     } else {
